@@ -1,15 +1,15 @@
 "use client";
 
-import { z } from "zod";
+import { authClient } from "@/lib/auth-client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { OctagonAlertIcon } from "lucide-react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
-import { OctagonAlertIcon } from "lucide-react";
-import { authClient } from "@/lib/auth-client";
+import { z } from "zod";
 
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -18,10 +18,11 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Alert, AlertTitle } from "@/components/ui/alert";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { Input } from "@/components/ui/input";
 import { InputPassword } from "@/components/ui/input-password";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { FaGoogle } from "react-icons/fa";
 
 const formSchema = z
   .object({
@@ -61,11 +62,12 @@ const SignUpView = (props: Props) => {
         name: data.name,
         email: data.email,
         password: data.password,
+        callbackURL: "/",
       },
       {
         onSuccess: () => {
-          router.push("/");
           setPending(false);
+          router.push("/");
         },
         onError: ({ error }) => {
           setPending(false);
@@ -74,6 +76,26 @@ const SignUpView = (props: Props) => {
       }
     );
   };
+
+  const onSocialSubmit = (provider: "google") => {
+    setError(null);
+    setPending(true);
+
+    authClient.signIn.social(
+      {
+        provider: provider,
+        callbackURL: "/",
+      },
+      {
+        onSuccess: () => setPending(false),
+        onError: ({ error }) => {
+          setPending(false);
+          setError(error.message);
+        },
+      }
+    );
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <Card className="overflow-hidden p-0">
@@ -166,8 +188,14 @@ const SignUpView = (props: Props) => {
                   </span>
                 </div>
                 <div className="grid gap-4">
-                  <Button variant={"outline"} type="button" className="w-full">
-                    Google
+                  <Button
+                    variant={"outline"}
+                    type="button"
+                    className="w-full"
+                    onClick={() => onSocialSubmit("google")}
+                  >
+                    <FaGoogle className="h-4 w-4" />
+                    Continue with Google
                   </Button>
                 </div>
                 <div className="text-center text-sm">
