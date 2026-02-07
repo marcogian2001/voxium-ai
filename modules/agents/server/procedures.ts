@@ -10,23 +10,29 @@ import {
   MAX_PAGE_SIZE,
   MIN_PAGE_SIZE,
 } from "@/modules/contants";
+import { TRPCError } from "@trpc/server";
 
 export const agentsRouter = createTRPCRouter({
   getOne: protectedProcedure
     .input(
       z.object({
         id: z.string(),
-      }),
+      })
     )
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const [existingAgent] = await db
         .select({
           meetingCount: sql<number>`5`,
           ...getTableColumns(agents),
         })
         .from(agents)
-        .where(eq(agents.id, input.id));
+        .where(
+          and(eq(agents.id, input.id), eq(agents.userId, ctx.auth.user.id))
+        );
 
+      if (!existingAgent) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Agent not found" });
+      }
       return existingAgent;
     }),
 
@@ -40,7 +46,7 @@ export const agentsRouter = createTRPCRouter({
           .max(MAX_PAGE_SIZE)
           .default(DEFAULT_PAGE_SIZE),
         search: z.string().nullish(),
-      }),
+      })
     )
     .query(async ({ ctx, input }) => {
       const { search, page, pageSize } = input;
@@ -53,8 +59,8 @@ export const agentsRouter = createTRPCRouter({
         .where(
           and(
             eq(agents.userId, ctx.auth.user.id),
-            input?.search ? ilike(agents.name, `%${input.search}%`) : undefined,
-          ),
+            input?.search ? ilike(agents.name, `%${input.search}%`) : undefined
+          )
         )
         .orderBy(desc(agents.createdAt), desc(agents.id))
         .limit(pageSize)
@@ -66,8 +72,8 @@ export const agentsRouter = createTRPCRouter({
         .where(
           and(
             eq(agents.userId, ctx.auth.user.id),
-            input?.search ? ilike(agents.name, `%${input.search}%`) : undefined,
-          ),
+            input?.search ? ilike(agents.name, `%${input.search}%`) : undefined
+          )
         );
 
       const totalPages = Math.ceil(total.count / pageSize);
