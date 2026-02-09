@@ -11,14 +11,48 @@ import {
   MIN_PAGE_SIZE,
 } from "@/modules/contants";
 import { TRPCError } from "@trpc/server";
+import { meetingsInsertSchema, meetingsUpdateSchema } from "../schemas";
 
 export const meetingsRouter = createTRPCRouter({
+  create: protectedProcedure
+    .input(meetingsInsertSchema)
+    .mutation(async ({ input, ctx }) => {
+      const [createdMeeting] = await db
+        .insert(meetings)
+        .values({
+          ...input,
+          userId: ctx.auth.user.id,
+        })
+        .returning();
 
+      return createdMeeting;
+    }),
+
+  update: protectedProcedure
+    .input(meetingsUpdateSchema)
+    .mutation(async ({ ctx, input }) => {
+      const [updatedMeeting] = await db
+        .update(meetings)
+        .set(input)
+        .where(
+          and(eq(meetings.id, input.id), eq(meetings.userId, ctx.auth.user.id)),
+        )
+        .returning();
+
+      if (!updatedMeeting) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Meeting not found",
+        });
+      }
+
+      return updatedMeeting;
+    }),
   getOne: protectedProcedure
     .input(
       z.object({
         id: z.string(),
-      })
+      }),
     )
     .query(async ({ input, ctx }) => {
       const [existingMeeting] = await db
@@ -27,11 +61,14 @@ export const meetingsRouter = createTRPCRouter({
         })
         .from(meetings)
         .where(
-          and(eq(meetings.id, input.id), eq(meetings.userId, ctx.auth.user.id))
+          and(eq(meetings.id, input.id), eq(meetings.userId, ctx.auth.user.id)),
         );
 
       if (!existingMeeting) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "meeting not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "meeting not found",
+        });
       }
       return existingMeeting;
     }),
@@ -46,7 +83,7 @@ export const meetingsRouter = createTRPCRouter({
           .max(MAX_PAGE_SIZE)
           .default(DEFAULT_PAGE_SIZE),
         search: z.string().nullish(),
-      })
+      }),
     )
     .query(async ({ ctx, input }) => {
       const { search, page, pageSize } = input;
@@ -58,8 +95,10 @@ export const meetingsRouter = createTRPCRouter({
         .where(
           and(
             eq(meetings.userId, ctx.auth.user.id),
-            input?.search ? ilike(meetings.name, `%${input.search}%`) : undefined
-          )
+            input?.search
+              ? ilike(meetings.name, `%${input.search}%`)
+              : undefined,
+          ),
         )
         .orderBy(desc(meetings.createdAt), desc(meetings.id))
         .limit(pageSize)
@@ -71,8 +110,10 @@ export const meetingsRouter = createTRPCRouter({
         .where(
           and(
             eq(meetings.userId, ctx.auth.user.id),
-            input?.search ? ilike(meetings.name, `%${input.search}%`) : undefined
-          )
+            input?.search
+              ? ilike(meetings.name, `%${input.search}%`)
+              : undefined,
+          ),
         );
 
       const totalPages = Math.ceil(total.count / pageSize);
@@ -82,6 +123,4 @@ export const meetingsRouter = createTRPCRouter({
         totalPages,
       };
     }),
-
-
 });
