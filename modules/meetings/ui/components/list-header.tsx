@@ -4,12 +4,13 @@ import { PlusIcon, XCircleIcon } from "lucide-react";
 import React, { useState } from "react";
 
 import { DEFAULT_PAGE } from "@/modules/contants";
-import NewMeetingDialog from "./new-meetings-dialog";
+
 import SearchFilter from "./meetings-search-filter";
 import { StatusFilter } from "./status-filter";
 import { AgentIdFilter } from "./agent-id-filter";
 import { useMeetingsFilters } from "../../hooks/use-meetings-filters";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import NewMeetingDialog from "./new-meeting-dialog";
 
 type Props = {};
 
