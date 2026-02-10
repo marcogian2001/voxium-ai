@@ -5,11 +5,29 @@ import React, { useState } from "react";
 
 import { DEFAULT_PAGE } from "@/modules/contants";
 import NewMeetingDialog from "./new-meetings-dialog";
+import SearchFilter from "./meetings-search-filter";
+import { StatusFilter } from "./status-filter";
+import { AgentIdFilter } from "./agent-id-filter";
+import { useMeetingsFilters } from "../../hooks/use-meetings-filters";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 type Props = {};
 
 function MeetingsListHeader({}: Props) {
+  const [filters, setFilters] = useMeetingsFilters();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const isAnyFilterModified =
+    !!filters.status || !!filters.search || !!filters.agentId;
+
+  const onClearFilters = () => {
+    setFilters({
+      status: null,
+      agentId: "",
+      search: "",
+      page: DEFAULT_PAGE,
+    });
+  };
 
   return (
     <>
@@ -26,7 +44,20 @@ function MeetingsListHeader({}: Props) {
             New Meeting
           </Button>
         </div>
-        <div className="flex items-center gap-x-2 p-1"></div>
+        <ScrollArea>
+          <div className="flex items-center gap-x-2 p-1">
+            <SearchFilter />
+            <StatusFilter />
+            <AgentIdFilter />
+            {isAnyFilterModified && (
+              <Button variant="outline" onClick={onClearFilters}>
+                <XCircleIcon className="size-4" />
+                Clear
+              </Button>
+            )}
+          </div>
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
       </div>
     </>
   );
