@@ -17,6 +17,7 @@ const CallUI = (props: Props) => {
   const handleJoin = async () => {
     if (!call) return;
 
+    await call.microphone.enable();
     await call.join();
 
     setShow("call");
